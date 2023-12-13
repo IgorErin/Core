@@ -64,7 +64,7 @@ pprExpr (EAp x y) = pprExpr x `sep` pprExpr y
 pprExpr (ELet isrec ls body) = 
     P.merge [
         P.str recflag, P.nl,
-        P.indent $ pprDefns ls, P.nl,
+        P.ws, P.indent $ pprDefns ls, P.nl,
         P.str "in ", pprExpr body
     ]
     where recflag = if isrec then "letrec" else "let"

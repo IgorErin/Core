@@ -1,6 +1,9 @@
-module PSeq (T(), nil, str, append, nl, indent, display, merge, interleav) where 
+module PSeq (T(), ws, nil, str, append, nl, indent, display, merge, interleav) where 
 
-data T = Nil | Str String | Append T T 
+data T = Nil | Str String | Append T T | Indent T | NewLine 
+
+ws :: T 
+ws = Str " "
 
 nil :: T 
 nil = Nil 
@@ -12,24 +15,38 @@ append :: T -> T -> T
 append = Append 
 
 nl :: T 
-nl = Str "\n"
+nl = NewLine 
 
 indent :: T -> T 
-indent = id 
+indent = Indent 
 
 merge :: [T] -> T 
 merge  = foldl append nil   
 
 interleav :: T -> [T] -> T 
-interleav sep ls = 
-    let add f s = merge [f, sep, s] in 
-    foldl add nil ls 
+interleav sep ls =
+    case ls of 
+        hd : tl  ->  
+            let add f s = merge [f, sep, s] in 
+            foldl add hd tl 
+        [] -> Nil 
 
 display :: T -> String 
-display = undefined
+display = flatten 0  . (: [])
 
-flatten :: [T] -> String
-flatten [] = ""
-flatten (Nil : tl) = flatten tl 
-flatten (Str s : tl ) = s ++ flatten tl
-flatten (Append f s : tl) = flatten (f : s : tl) 
+space :: Int -> String
+space n  = replicate n " " |> concat 
+    where (|>)  x f = f x 
+
+flatten :: Int -> [T] -> String
+flatten _      []                         = ""
+flatten global (NewLine : tl )       = '\n' : space global ++ flatten global tl 
+flatten global ((Indent hd) : tl)    = 
+    let newHd = flatten (succ global) [hd] 
+        newTl = flatten global tl in
+        newHd ++ newTl
+flatten global (Nil : tl)            = flatten global tl
+flatten global ((Str s) : tl)        = s ++ flatten global tl  
+flatten global ((Append l r) : tl)   = mk l ++ mk r ++ flatten global tl
+    where 
+        mk t = flatten global [t]  
