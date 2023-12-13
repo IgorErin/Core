@@ -35,6 +35,13 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - array
+  - base
+  - bytestring
+  build-tool-depends: 
+  - alex 
+  - happy
 
 executables:
   Core-exe:
@@ -49,7 +56,9 @@ executables:
 
 tests:
   Core-test:
-    main:                Spec.hs
+    main:                Main.hs
+    other-modules: 
+      - Tests.Lexer
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -57,3 +66,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - Core
+    - HUnit

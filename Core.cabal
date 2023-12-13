@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Language
+      Lexer
       Lib
       PSeq
   other-modules:
@@ -35,8 +36,13 @@ library
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-tools:
+      alex
+    , happy
   build-depends:
-      base >=4.7 && <5
+      array
+    , base
+    , bytestring
   default-language: Haskell2010
 
 executable Core-exe
@@ -55,15 +61,14 @@ executable Core-exe
 
 test-suite Core-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
-      Paths_Core
-  autogen-modules:
-      Paths_Core
+      Tests.Lexer
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Core
+    , HUnit
     , base >=4.7 && <5
   default-language: Haskell2010

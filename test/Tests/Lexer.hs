@@ -1,0 +1,30 @@
+module Tests.Lexer (tests) where 
+
+import Test.HUnit (Test(TestList, TestCase ), assertEqual)
+import Lexer as L 
+
+cases = 
+    [ 
+        ("let in case Pack letrec let case of", [L.Let, L.In, L.Case, L.Pack, L.Letrec, L.Let, L.Case, L.Of ]),
+        (" -> ", [L.Arrow]),
+        ("fun", [L.Lambda]),
+        ("+ - / * ", [L.Plus, L.Minus, L.Div, L.Mul]),
+        ("== < <= > >=", [L.Eq, L.LT, L.LE, L.GT, L.GE]),
+        ("| &", [L.Or, L.And]),
+        ("( ) { } < >", [L.LParent, L.RParent, L.LBrace, L.RBrace, L.LT, L.GT ]),
+        ("; , .", [L.SemiColon, L.Comma, L.Point]),
+        ("=", [L.Assign]),
+
+        ("fun x -> x", [L.Lambda, L.Ident "x", L.Arrow, L.Ident "x"])
+    ]
+
+tests = 
+    TestList $
+    map (\ (str, expected) -> 
+            let 
+                actual = L.alexScanTokens  str
+            in 
+                TestCase $ assertEqual str actual expected)
+        cases 
+    
+    
