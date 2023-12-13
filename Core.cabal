@@ -25,7 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      Language
       Lib
+      PSeq
   other-modules:
       Paths_Core
   autogen-modules:
