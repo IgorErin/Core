@@ -1,7 +1,7 @@
 module Main where 
 
-import Test.HUnit
+import Test.Tasty
 import Tests.Lexer(tests)
 
-main :: IO Counts
-main = runTestTT tests
+main :: IO ()
+main = defaultMain tests

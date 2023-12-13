@@ -1,6 +1,7 @@
 module Tests.Lexer (tests) where 
 
-import Test.HUnit (Test(TestList, TestCase ), assertEqual)
+import Test.Tasty.HUnit
+import Test.Tasty
 import Lexer as L 
 
 cases = 
@@ -19,12 +20,12 @@ cases =
     ]
 
 tests = 
-    TestList $
+    testGroup "Lexing" $
     map (\ (str, expected) -> 
             let 
                 actual = L.alexScanTokens  str
             in 
-                TestCase $ assertEqual str actual expected)
+                 testCase str $ actual @?= expected)
         cases 
     
     

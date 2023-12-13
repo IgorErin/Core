@@ -66,4 +66,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - Core
-    - HUnit
+    - tasty 
+    - tasty-hunit
