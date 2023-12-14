@@ -4,6 +4,7 @@ import Test.Tasty.HUnit
 import Test.Tasty
 import Lexer as L 
 
+cases :: [(String, [Token])]
 cases = 
     [ 
         ("let in case Pack letrec let case of", [L.Let, L.In, L.Case, L.Pack, L.Letrec, L.Let, L.Case, L.Of ]),
@@ -19,6 +20,7 @@ cases =
         ("fun x -> x", [L.Lambda, L.Ident "x", L.Arrow, L.Ident "x"])
     ]
 
+tests :: TestTree
 tests = 
     testGroup "Lexing" $
     map (\ (str, expected) -> 

@@ -16,7 +16,7 @@ rhssOf :: [(a, b)] -> [b]
 rhssOf = map snd
 
 type Alt a = (Int, [a], Expr a)
-type CoreAlt = Alt Name
+type CoreAlt = Alt Name  
 
 isAtomicExpr :: Expr a -> Bool 
 isAtomicExpr (EVar _) = True 
@@ -37,7 +37,7 @@ data Expr a =
     | ELet IsRec [(a, Expr a)] (Expr a)
     | ECase (Expr a) [Alt a]
     | ELam [a] (Expr a)
-    deriving Show 
+    deriving (Show, Eq)  
 
 type CoreExpr = Expr Name 
 
