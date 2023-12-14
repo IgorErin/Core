@@ -28,6 +28,7 @@ library
       Language
       Lexer
       Lib
+      Parser
       PSeq
   other-modules:
       Paths_Core

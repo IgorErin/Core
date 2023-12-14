@@ -1,8 +1,9 @@
 module Main (main) where
 
 import Lexer as L 
+import Parser as P 
 
 main :: IO ()
-main = print $ L.alexScanTokens "."
+main = print $ P.calc $ L.alexScanTokens "f x = 5"
 
 

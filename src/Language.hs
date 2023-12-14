@@ -1,10 +1,8 @@
 module Language where 
 
 import qualified PSeq as P
-import qualified Debug.Trace as T
 
 type Name = String
-
 type IsRec = Bool 
 
 nonRecursive, recursive :: IsRec 
@@ -17,7 +15,7 @@ binderOf = map fst
 rhssOf :: [(a, b)] -> [b]
 rhssOf = map snd
 
-type Alt a = (Int, [a], a)
+type Alt a = (Int, [a], Expr a)
 type CoreAlt = Alt Name
 
 isAtomicExpr :: Expr a -> Bool 
@@ -26,7 +24,7 @@ isAtomicExpr (ENum _) = True
 isAtomicExpr _ = False 
 
 type ScDefn a = (Name, [a], Expr a)
-type CorScDefn = ScDefn Name
+type CoreScDefn = ScDefn Name
 
 type Program a = [] (ScDefn a)
 type CoreProgram  = Program Name 
@@ -41,17 +39,37 @@ data Expr a =
     | ELam [a] (Expr a)
     deriving Show 
 
-type CoreExpr = Expr Name
+type CoreExpr = Expr Name 
+
+var :: Name -> Expr a
+var = EVar 
+num :: Int -> Expr a
+num = ENum 
+constr :: Int -> Int -> Expr a
+constr = EConstr 
+app :: Expr a -> Expr a -> Expr a
+app = EAp 
+let_ :: IsRec -> [(a, Expr a)] -> Expr a -> Expr a
+let_ = ELet 
+case_ :: Expr a -> [Alt a] -> Expr a
+case_ = ECase 
+fun :: [a] -> Expr a -> Expr a
+fun = ELam 
+
+alt :: Int -> [Name] -> CoreExpr -> CoreAlt 
+alt = (,,)
+
+mkBinOp :: Name -> CoreExpr -> CoreExpr -> CoreExpr  
+mkBinOp name f = EAp (EAp (EVar name) f) 
+
+mkSc :: Name -> [Name] -> CoreExpr -> CoreScDefn  
+mkSc = (,,)
+
+mkProgram :: [ScDefn Name] -> CoreProgram  
+mkProgram x = x  
 
 predef :: CoreProgram 
 predef = [("I",["x"], EVar "x")] -- TODO    
-
-mkMultAp :: Int -> CoreExpr -> CoreExpr -> CoreExpr
-mkMultAp n e1 e2 =  
-    let 
-        ls = e2 : ls 
-    in
-    T.trace (show n) $ foldl EAp e1 $ take n ls 
 
 pprExpr :: CoreExpr -> P.T
 pprExpr (EConstr f s) = P.merge [ P.str "<", P.str $ show f, P.str ", ", P.str $ show s, P.str ">" ]
@@ -97,7 +115,7 @@ pprExpr (ECase scr vars) =
                     ],
                 P.str ">",
                 P.str " -> ",
-                P.str body 
+                pprExpr body 
             ]
 
 pprDefns :: [(Name, CoreExpr)] -> P.T
