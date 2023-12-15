@@ -59,6 +59,8 @@ tests:
     main:                Main.hs
     other-modules: 
       - Tests.Lexer
+      - Tests.Parser 
+      - Tests.Mark1
     source-dirs:         test
     ghc-options:
     - -threaded

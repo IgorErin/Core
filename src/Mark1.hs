@@ -68,7 +68,11 @@ combStep (stack, dump, heap, globals, stat) _ pars body =
                 U.NApp _ arg -> arg
                 _ -> error "Not a app in arg lookup"
 
-        newGlobals = Map.union globals $ Map.fromList $ zip pars $ getArgs (drop 1 stack) 
+        newGlobals  
+            | length args >= length pars = 
+                Map.union globals $ Map.fromList $ zip pars args  
+            | otherwise = error "Not enough arguments"
+            where args =  getArgs (drop 1 stack) 
 
         (newHeap, newAddr) = instanciate body heap newGlobals
 
