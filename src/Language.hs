@@ -68,7 +68,7 @@ mkProgram x = x
 
 predef :: CoreProgram 
 predef = [
-    ("I",["x"], EVar "x"),
+    ("I", ["x"], EVar "x"),
     ("K", ["x", "y"], EVar "x"),
     ("K1", ["x", "y"], EVar "y"),
     ("S", ["f", "g", "x"], EAp (EAp (EVar"f") (EVar "x")) (EAp (EVar"g") (EVar "x"))),
@@ -108,7 +108,7 @@ pprExpr (ECase scr vars) =
     ]
     where
         pvar :: CoreAlt -> P.T 
-        pvar (number, vars, body) =
+        pvar (number, vs, body) =
             let 
                 sep = P.str ", " 
                 pvars vars' = P.interleav sep $ map P.str vars' 
@@ -118,7 +118,7 @@ pprExpr (ECase scr vars) =
                 P.interleav sep 
                     [
                          P.str $ show number, 
-                         pvars vars
+                         pvars vs
                     ],
                 P.str ">",
                 P.str " -> ",

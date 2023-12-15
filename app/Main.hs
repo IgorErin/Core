@@ -1,9 +1,11 @@
 module Main (main) where
+import Mark1 as M1
+import Frontend as F
 
-import Lexer as L 
-import Parser as P 
+runAndPrint :: String -> String
+runAndPrint = M1.showResult . M1.start . M1.compile . F.parse 
 
 main :: IO ()
-main = print $ P.calc $ L.alexScanTokens "f x = 5"
+main = putStrLn $ runAndPrint "main = (S K I (K I S)) 0"
 
 
