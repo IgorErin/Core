@@ -37,7 +37,7 @@ hInit :: TiHeap
 hInit = (M.empty, iterate (+1) 0)
 
 hLook :: Addr -> TiHeap -> Node 
-hLook addr (h, _) = MB.fromJust $ M.lookup  addr h   
+hLook addr (h, _) = MB.fromMaybe (error $ "hLook faild on " ++ show addr) $ M.lookup addr h   
 
 hAddrs :: TiHeap -> [Addr]
 hAddrs (h, _)= M.keys h 
@@ -61,7 +61,7 @@ gInit :: TiGlobals
 gInit = M.empty
 
 gLook :: L.Name -> TiGlobals -> Addr 
-gLook k m = MB.fromJust $ M.lookup k m   
+gLook k m = MB.fromMaybe (error $ "gLook faild on " ++ show k) $ M.lookup k m   
 
 gInsert :: L.Name -> Addr -> TiGlobals -> TiGlobals
 gInsert = M.insert  
