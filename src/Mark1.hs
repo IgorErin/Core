@@ -10,7 +10,7 @@ compile :: L.CoreProgram -> U.TiState
 compile program = 
     (initStack, U.initDump, initHeap, globals, U.tiStatInit)
         where
-            scDefs = program ++ L.predef
+            scDefs = L.predef ++ program
 
             (globals, initHeap) = buildHeap scDefs
 
@@ -36,9 +36,6 @@ glue = id
 
 --------------------- Steps -----------------------------------
 
-numStep :: U.TiState -> Int -> U.TiState
-numStep = error "Number applied as function"
-
 appStep :: U.TiState -> U.Addr -> U.Addr -> U.TiState 
 appStep (stack, dump, heap, globals, stat) a1 _ = (a1 : stack, dump, heap, globals, stat)
 
@@ -51,6 +48,23 @@ instanciate (L.EAp f arg) heap globals =
         (heap2, a2) = instanciate arg heap1 globals
 instanciate (L.EVar v) heap globals = (heap, varAddr)
     where varAddr = U.gLook v globals 
+instanciate (L.ELet False binds body) heap globals = 
+    instanciate body bindsHeap bindsGlobals
+    where 
+        (bindsHeap, bindsGlobals) = foldl f (heap, globals) binds
+
+        f :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
+        f (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
+            where (newHeap, addr) = instanciate expr cheap cglobals  
+instanciate (L.ELet True binds body) heap globals = 
+    instanciate body bindsHeap bindsGlobals
+    where 
+        (_, interGlobals) = foldl f (heap, globals) binds
+        (bindsHeap, bindsGlobals) = foldl f (heap, interGlobals) binds
+
+        f :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
+        f (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
+            where (newHeap, addr) = instanciate expr cheap cglobals                
 instanciate _ _ _= undefined            
 
 combStep :: U.TiState -> L.Name -> [L.Name] -> L.CoreExpr -> U.TiState 
@@ -81,7 +95,7 @@ step state = dispatch (U.hLook (List.head stack) heap)
     where   
         (stack, _, heap, _, _) = state 
 
-        dispatch (U.NNum n) = numStep state n 
+        dispatch (U.NNum n) = error $ "Number " ++ show n ++ " applyed as function"
         dispatch (U.NApp f a) = appStep state f a
         dispatch (U.NCombinator name args body) = combStep state name args body         
 
