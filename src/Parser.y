@@ -101,13 +101,19 @@ BinOp : Expr '+' Expr                 { mkBinOp "+" $1 $3 }
 Var :: {Name}
 Var : ident                      { $1 }   
 
-ScList :: { [] CoreScDefn }
-ScList 
+ScList :: {[CoreScDefn]}
+ScList : RawScList                { reverse $1 }
+
+RawScList :: { [] CoreScDefn }
+RawScList 
       : ScList ';' Sc            { $3 : $1 }
       | Sc                       { (:[]) $1 }
 
 VarList :: {[Name]}
-VarList 
+VarList : RawVarList              { reverse $1 }
+
+RawVarList :: {[Name]}
+RawVarList 
       : VarList Var                 { $2 : $1 }
       | {- empty -}               { [] }  
 
