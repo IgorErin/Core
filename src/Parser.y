@@ -85,11 +85,9 @@ Defn : Var '=' Expr                 { (,) $1 $3 }
 ----------------- Alts ------------------------
 Alts : RawAlts                      { reverse $1 }
 
-
 RawAlts :: {[] CoreAlt}
 RawAlts : Alts ';' Alt                 { $3 : $1 }
       | Alt                         { (:[]) $1}
-
 
 Alt :: {CoreAlt} 
 Alt : '<' num '>' VarList "->" Expr { alt $2 $4 $6 } 
@@ -119,7 +117,7 @@ ScList : RawScList                { reverse $1 }
 
 RawScList :: { [] CoreScDefn }
 RawScList 
-      : ScList ';' Sc            { $3 : $1 }
+      : RawScList ';' Sc            { $3 : $1 }
       | Sc                       { (:[]) $1 }
 
 VarList :: {[Name]}
@@ -127,7 +125,7 @@ VarList : RawVarList              { reverse $1 }
 
 RawVarList :: {[Name]}
 RawVarList 
-      : VarList Var                 { $2 : $1 }
+      : RawVarList Var                 { $2 : $1 }
       | {- empty -}               { [] }  
 
 ---------------------------------------------------
