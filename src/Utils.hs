@@ -4,7 +4,7 @@ import qualified Language as L
 import qualified PSeq as P
 
 import qualified Data.Maybe as MB 
-import qualified Data.Map as M (Map, empty, lookup, keys, size, insert, delete, toList)
+import qualified Data.Map.Lazy as M (Map, empty, lookup, keys, size, insert, delete, toList)
 
 ------------- Adr -------------------------
 type Addr = Int 

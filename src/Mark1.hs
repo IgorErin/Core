@@ -88,9 +88,8 @@ combStep (stack, dump, heap, globals, stat) _ pars body =
             | length args >= length pars = Map.union globals newMap  
             | otherwise = error "Not enough arguments"
             where 
-                revpars = reverse pars 
                 args =  getArgs (drop 1 stack) 
-                newMap = Map.fromList $ zip revpars args
+                newMap = Map.fromList $ zip pars args
 
 
         (newHeap, newAddr) = instanciate body heap newGlobals
