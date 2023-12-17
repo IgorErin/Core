@@ -8,9 +8,24 @@ import Test.Tasty.HUnit
 
 cases :: [(String, Int)]
 cases = 
-    [ ("main = S K K 3", 3),
+    [ ("main = I 3", 3),
+      ("id = S K K ; \
+        \ main = id 3", 3),
+        ("id = S K K ; \
+         \ main = twice twice twice id 3", 3),
+      ("main = S K K 3", 3),
       ("main = (S K I K) 3 0", 3),
-      ("main = (S K I (K I S)) 0", 0)]
+      ("main = (S K I (K I S)) 0", 0),
+      ("main = let x = 1 in x", 1),
+      ("main = letrec x = K y 1; y = K 2 x in x", 2) ,
+      ("main = twice (I I I) 3", 3),
+       (" cons a b cc cn = cc a b ; \
+        \ nil      cc cn = cn ; \
+        \ hd list = list K abort ; \
+        \ tl list = list K1 abort ; \
+        \ abort = abort ; \ 
+        \ infinite x = cons x (infinite x) ; \
+        \ main = hd (tl (infinite 4))", 4)]
 
 run :: String -> Int
 run = M.run . F.parse 
