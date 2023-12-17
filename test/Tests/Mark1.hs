@@ -25,7 +25,24 @@ cases =
         \ tl list = list K1 abort ; \
         \ abort = abort ; \ 
         \ infinite x = cons x (infinite x) ; \
-        \ main = hd (tl (infinite 4))", 4)]
+        \ main = hd (tl (infinite 4))", 4),
+        (" main = let id1 = I I I\
+          \ in id1 id1 3", 3),
+        ("oct g x = \ 
+         \   let h = twice g \
+         \    in  \
+         \    let k = twice h \ 
+         \     in k (k x) ; \
+         \ main = oct I 4", 4),
+         ("cons a b cc cn = cc a b ; \
+          \ nil      cc cn = cn ; \
+          \ hd list = list K abort ; \
+          \ tl list = list K1 abort ; \
+          \ abort = abort ; \ 
+          \ infinite x = \ 
+          \  letrec xs = cons x xs \
+          \  in xs ; \
+          \  main = hd (tl (tl (infinite 4)))", 4)]
 
 run :: String -> Int
 run = M.run . F.parse 
