@@ -2,18 +2,18 @@ module Utils where
 
 import qualified Language as L 
 import qualified PSeq as P
+import qualified Assoc as A
 
 import qualified Data.Maybe as MB 
-import qualified Data.Map.Lazy as M (Map, empty, lookup, keys, size, insert, delete, toList)
 
-------------- Adr -------------------------
+------------- Addr -------------------------
 type Addr = Int 
 
 diffAddr :: Int
 diffAddr = - 1 
 
 addrIsNull :: TiHeap -> Bool 
-addrIsNull = null
+addrIsNull (_, ls, _) = A.null ls   
 
 showAddr :: Addr -> TiHeap  -> P.T 
 showAddr addr heap = showNode (hLook addr heap) heap  
@@ -48,43 +48,51 @@ initDump :: TiDump
 initDump = DummyDump
 
 ------------------- TiHeap --------------------
-type TiHeap = (M.Map Addr Node, [Int])
+type TiHeap = (Int, A.T Addr Node, [Addr])
 
 hInit :: TiHeap 
-hInit = (M.empty, iterate (+1) 0)
+hInit = (0, [], iterate (+1) 0)
 
 hLook :: Addr -> TiHeap -> Node 
-hLook addr (h, _) = MB.fromMaybe (error $ "hLook faild on " ++ show addr) $ M.lookup addr h   
+hLook addr (_, h, _) = MB.fromMaybe (error $ "hLook faild on " ++ show addr) $ A.look addr h   
 
 hAddrs :: TiHeap -> [Addr]
-hAddrs (h, _)= M.keys h 
+hAddrs (_ ,h, _)= map fst h 
 
 hSize :: TiHeap -> Int 
-hSize (h, _)= M.size h
+hSize (size, _, _)= size
 
 hAlloc :: Node -> TiHeap -> (TiHeap, Addr)
-hAlloc value (h, current: next) = 
-    let newHeap = (M.insert current value h, next) in
-    (newHeap, current)
-hAlloc _ _ = error "empty list in hAlloc"
+hAlloc value (size, h, newAddr : rest) =  ((size + 1, (newAddr, value) : h, rest), newAddr)
+hAlloc _ _ = error "empty addr list in hAlloc"
 
 hFree :: TiHeap -> Addr -> TiHeap 
-hFree (heap, addrs) a = (M.delete a heap, a: addrs)
+hFree (size, heap, addrs) a = (size - 1, A.delete a heap, a: addrs)
 
 hShow :: TiHeap -> P.T 
-hShow heap = P.interleav P.nl . map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode  value heap ]) . M.toList . fst $ heap 
+hShow heap = 
+    P.interleav P.nl . 
+    map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode  value heap ]) .
+    (\(_, h, _) -> h) $
+    heap 
 
 -------------- TiGlobals -----------------------
-type TiGlobals = M.Map L.Name Addr
+type TiGlobals = A.T L.Name Addr
 
 gInit :: TiGlobals 
-gInit = M.empty
+gInit = []
 
 gLook :: L.Name -> TiGlobals -> Addr 
-gLook k m = MB.fromMaybe (error $ "gLook faild on " ++ show k) $ M.lookup k m   
+gLook k m = MB.fromMaybe (error $ "gLook faild on " ++ show k) $ A.look k m   
 
 gInsert :: L.Name -> Addr -> TiGlobals -> TiGlobals
-gInsert = M.insert  
+gInsert name addr gl = (name, addr) : gl    
+
+gUnion :: TiGlobals -> TiGlobals ->  TiGlobals 
+gUnion = A.union
+
+gFromList :: [(L.Name, Addr)] -> TiGlobals 
+gFromList = A.fromList 
 
 ----------------- TiStat -----------------------
 type TiStat = Int 

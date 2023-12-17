@@ -50,7 +50,7 @@ cases =
             \ a = pair x b ; \
             \ b = pair y a \
             \ in \
-            \ fst (snd (snd (snd a))) ; \
+            \ fst a ; \
             \ main = f 3 4", 4)]
 
 run :: String -> Int

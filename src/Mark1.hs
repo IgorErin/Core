@@ -5,7 +5,6 @@ import qualified Utils as U
 import qualified PSeq as P
 
 import qualified Data.List as List (head) 
-import qualified Data.Map as Map
 
 import qualified Debug.Trace as Tr (trace )
 
@@ -61,12 +60,16 @@ instanciate (L.ELet False binds body) heap globals =
 instanciate (L.ELet True binds body) heap globals = 
     instanciate body bindsHeap bindsGlobals
     where 
-        (_, interGlobals) = foldl f (heap, globals) binds
-        (bindsHeap, bindsGlobals) = foldl f (heap, interGlobals) binds
+        (_, interGlobals) = foldl collect (heap, U.gInit) binds
+        (bindsHeap, bindsGlobals) = foldl use (heap, U.gUnion interGlobals globals) binds
 
-        f :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
-        f (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
-            where (newHeap, addr) = instanciate expr cheap cglobals                
+        collect :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
+        collect (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
+            where (newHeap, addr) = instanciate expr cheap U.gInit 
+
+        use :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
+        use (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
+            where (newHeap, addr) = instanciate expr cheap cglobals
 instanciate _ _ _= undefined            
 
 combStep :: U.TiState -> L.Name -> [L.Name] -> L.CoreExpr -> U.TiState 
@@ -85,11 +88,11 @@ combStep (stack, dump, heap, globals, stat) _ pars body =
                 _ -> error "Not a app in arg lookup"
 
         newGlobals  
-            | length args >= length pars = Map.union globals newMap  
+            | length args >= length pars = U.gUnion globals newMap  
             | otherwise = error "Not enough arguments"
             where 
                 args =  getArgs (drop 1 stack) 
-                newMap = Map.fromList $ zip pars args
+                newMap = U.gFromList $ zip pars args
 
 
         (newHeap, newAddr) = instanciate body heap newGlobals
