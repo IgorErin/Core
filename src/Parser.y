@@ -71,17 +71,30 @@ AExpr : Var                         { var $1 }
       | Pack '{' num ',' num '}'    { constr $3 $5 }
       | '(' Expr ')'                { $2 }
 
-Defns :: {[(Name, CoreExpr)]}
-Defns : Defns ';' Defn              { $3 : $1 }
+----------------- Defns ----------------------------
+
+Defns : RawDefns                    { reverse $1 }
+
+RawDefns :: {[(Name, CoreExpr)]}
+RawDefns : Defns ';' Defn              { $3 : $1 }
       | Defn                        { (: []) $1 }     
+
 Defn :: {(Name, CoreExpr)}
 Defn : Var '=' Expr                 { (,) $1 $3 }      
 
-Alts :: {[] CoreAlt}
-Alts : Alts ';' Alt                 { $3 : $1 }
+----------------- Alts ------------------------
+Alts : RawAlts                      { reverse $1 }
+
+
+RawAlts :: {[] CoreAlt}
+RawAlts : Alts ';' Alt                 { $3 : $1 }
       | Alt                         { (:[]) $1}
+
+
 Alt :: {CoreAlt} 
 Alt : '<' num '>' VarList "->" Expr { alt $2 $4 $6 } 
+
+------------------- Bin Op --------------------------
 
 BinOp :: {CoreExpr}
 BinOp : Expr '+' Expr                 { mkBinOp "+" $1 $3 }
