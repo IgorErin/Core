@@ -2,9 +2,12 @@ module Mark1 where
 
 import qualified Language as L
 import qualified Utils as U 
+import qualified PSeq as P
+
 import qualified Data.List as List (head) 
 import qualified Data.Map as Map
-import qualified PSeq as P
+
+import qualified Debug.Trace as Tr (trace )
 
 compile :: L.CoreProgram -> U.TiState  
 compile program = 
@@ -25,11 +28,10 @@ compile program =
                     (newGlobals, newHeap)
 
 final :: U.TiState -> Bool 
-final (stack, _, heap, _, _) = 
-    case stack of 
-        [] -> error "Empty stack" 
-        [node] -> U.isDataNode (U.hLook node heap)
-        _ -> False
+final ([], _, _, _, _) =  error "Empty stack"
+final ([node], _, heap, _,_ ) = 
+    U.isDataNode (U.hLook node heap)
+final _ = False
 
 glue :: U.TiState -> U.TiState 
 glue = id 
@@ -83,10 +85,13 @@ combStep (stack, dump, heap, globals, stat) _ pars body =
                 _ -> error "Not a app in arg lookup"
 
         newGlobals  
-            | length args >= length pars = 
-                Map.union globals $ Map.fromList $ zip pars args  
+            | length args >= length pars = Map.union globals newMap  
             | otherwise = error "Not enough arguments"
-            where args =  getArgs (drop 1 stack) 
+            where 
+                revpars = reverse pars 
+                args =  getArgs (drop 1 stack) 
+                newMap = Map.fromList $ zip revpars args
+
 
         (newHeap, newAddr) = instanciate body heap newGlobals
 
@@ -95,7 +100,7 @@ step state = dispatch (U.hLook (List.head stack) heap)
     where   
         (stack, _, heap, _, _) = state 
 
-        dispatch (U.NNum n) = error $ "Number " ++ show n ++ " applyed as function"
+        dispatch (U.NNum n) = error $ "Number " ++ show n ++ " applyed as function \n Stack: \n" ++ P.display (showStack stack heap)
         dispatch (U.NApp f a) = appStep state f a
         dispatch (U.NCombinator name args body) = combStep state name args body         
 
@@ -105,7 +110,7 @@ start :: U.TiState -> [U.TiState]
 start state = state : restStates 
     where 
         restStates  
-            | final state = []
+            | final state = [] 
             | otherwise = start $ glue $ step state  
 
 getResult :: [U.TiState] -> Int
@@ -134,11 +139,9 @@ showState :: U.TiState -> P.T
 showState (stack, _, heap, _, _) = 
      P.interleav P.nl [
              P.str "======== Stack =========", 
-             showStack stack heap
-            --  , 
-            --  P.str "------- Stat -----",
-            --  showStat stat 
-            ]
+             showStack stack heap,
+             P.str "********* Heap **********", 
+             U.hShow heap ]
 
 showStack :: U.TiStack -> U.TiHeap -> P.T 
 showStack stack heap = 
@@ -147,7 +150,7 @@ showStack stack heap =
         showItem addr =
             P.merge [
                 P.str "addr: ",showAddr addr, P.nl,
-                showNode (U.hLook addr heap) heap  
+                U.showNode (U.hLook addr heap) heap  
             ]
         sep = P.merge [ P.nl, P.str "------ Frame ------", P.nl ]
 
