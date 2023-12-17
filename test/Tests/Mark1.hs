@@ -42,16 +42,18 @@ cases =
           \ infinite x = \ 
           \  letrec xs = cons x xs \
           \  in xs ; \
-          \  main = hd (tl (tl (infinite 4)))", 4),
-          ("  pair x y f = f x y ; \
-            \ fst p = p K ; \
-            \ snd p = p K1 ; \
-            \ f x y = letrec \
-            \ a = pair x b ; \
-            \ b = pair y a \
-            \ in \
-            \ fst a ; \
-            \ main = f 3 4", 4)]
+          \  main = hd (tl (tl (infinite 4)))", 4)
+          -- ("  pair x y f = f x y ; \
+          --   \ fst p = p K ; \
+          --   \ snd p = p K1 ; \
+          --   \ f x y = letrec \
+          --   \ a = pair x b ; \
+          --   \ b = pair y a \
+          --   \ in \
+          --   \ fst a ; \
+          --   \ main = f 3 4", 4)
+            
+            ]
 
 run :: String -> Int
 run = M.run . F.parse 

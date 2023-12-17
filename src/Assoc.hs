@@ -28,3 +28,8 @@ union = (++)
 
 fromList :: [(a, b)] -> T a b 
 fromList = id 
+
+update :: Eq a => a -> b -> T a b -> T a b 
+update key value ls = 
+    (key, value) : cleanLs 
+    where cleanLs = delete key ls  

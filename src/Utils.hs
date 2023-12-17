@@ -25,6 +25,7 @@ data Node =
     NApp Addr Addr 
     | NCombinator L.Name [L.Name] L.CoreExpr 
     | NNum Int 
+    | NInd Addr
     deriving Show 
 
 isDataNode :: Node -> Bool 
@@ -39,7 +40,7 @@ showNode (NApp f x) heap = P.merge [ P.str "NApp ", showNode nf heap , P.str " (
         nx = hLook x heap 
 
 showNode (NCombinator name _ _ ) _ = P.merge [P.str name]
-
+showNode (NInd addr) heap = showNode (hLook addr heap) heap
 
 ---------------- Dump -------------------------
 data TiDump = DummyDump deriving Show 
@@ -74,7 +75,11 @@ hShow heap =
     P.interleav P.nl . 
     map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode  value heap ]) .
     (\(_, h, _) -> h) $
-    heap 
+    heap
+
+
+hUpdate :: Addr -> Node -> TiHeap -> TiHeap 
+hUpdate key value (size, ls, adds) = (size, A.update key value ls, adds)
 
 -------------- TiGlobals -----------------------
 type TiGlobals = A.T L.Name Addr

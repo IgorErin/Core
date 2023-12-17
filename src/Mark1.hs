@@ -74,28 +74,34 @@ instanciate _ _ _= undefined
 
 combStep :: U.TiState -> L.Name -> [L.Name] -> L.CoreExpr -> U.TiState 
 combStep (stack, dump, heap, globals, stat) _ pars body =
-    (newStack, dump, newHeap, globals, stat)
+    (newAddr : restStack, dump, resultHeap, globals, stat)
 
-    where 
-        newStack = newAddr : drop (length pars + 1) stack 
+    where  
+        (instBodyHeap, newAddr) = instanciate body heap newGlobals
 
-        getArgs :: U.TiStack -> [] U.Addr 
-        getArgs =  map getArg
-            where 
-            getArg addr = 
-                case U.hLook addr heap of 
-                U.NApp _ arg -> arg
-                _ -> error "Not a app in arg lookup"
+        (headAddr, restStack) =
+             (head newStack, tail newStack)
+             where newStack = drop (length pars) stack
+
+        resultHeap = U.hUpdate headAddr (U.NInd newAddr ) instBodyHeap
 
         newGlobals  
             | length args >= length pars = U.gUnion globals newMap  
             | otherwise = error "Not enough arguments"
             where 
-                args =  getArgs (drop 1 stack) 
+                args =  getArgs $ tail  stack 
                 newMap = U.gFromList $ zip pars args
 
+                getArgs :: U.TiStack -> [] U.Addr 
+                getArgs = map getArg
+                    where 
+                    getArg addr = 
+                        case U.hLook addr heap of 
+                        U.NApp _ arg -> arg
+                        _ -> error "Not a app in arg lookup"
 
-        (newHeap, newAddr) = instanciate body heap newGlobals
+indStep :: U.TiState -> U.Addr -> U.TiState 
+indStep (stack, dump, heap, globals, stat) addr = (addr : tail stack, dump, heap, globals, stat)
 
 step :: U.TiState -> U.TiState 
 step state = dispatch (U.hLook (List.head stack) heap)
@@ -105,6 +111,7 @@ step state = dispatch (U.hLook (List.head stack) heap)
         dispatch (U.NNum n) = error $ "Number " ++ show n ++ " applyed as function \n Stack: \n" ++ P.display (showStack stack heap)
         dispatch (U.NApp f a) = appStep state f a
         dispatch (U.NCombinator name args body) = combStep state name args body         
+        dispatch (U.NInd addr) = indStep state addr
 
 --------------------- Eval -----------------------------------
 
@@ -158,23 +165,6 @@ showStack stack heap =
 
 showAddr :: U.Addr -> P.T 
 showAddr a = P.merge [ P.str "(addr: ", P.str $ show a, P.str ")" ]  
-
-showNode :: U.Node -> U.TiHeap -> P.T 
-showNode (U.NApp f a ) heap =
-    P.interleav (P.str " ") [ 
-        P.str "APP", showAddr f, P.str " ",
-        P.str "(", 
-        showNode (U.hLook a heap) heap,
-        P.str ")" ] 
-showNode (U.NNum n) _ = P.merge [ P.str "NUM: ", P.str $ show n ]
-showNode (U.NCombinator name args body) _ = 
-    P.merge [ 
-        P.str "COMBINATOR ", P.str name, P.str " (", pArgs, P.str ") =", 
-        P.str " ", P.indent $ L.pprExpr body 
-    ]
-
-    where 
-        pArgs = P.interleav (P.str " ") $ map P.str args 
 
 showStat :: U.TiStat -> P.T 
 showStat = P.str . show 
