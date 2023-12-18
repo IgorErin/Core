@@ -1,78 +1,62 @@
 module Mark1 where 
 
 import qualified Language as L
-import qualified Utils as U 
+import qualified State as S 
 import qualified PSeq as P
+import qualified Heap as H
 
 import qualified Data.List as List (head) 
 
-import qualified Debug.Trace as Tr (trace )
-
-compile :: L.CoreProgram -> U.TiState  
+compile :: L.CoreProgram -> S.TiState  
 compile program = 
-    (initStack, U.initDump, initHeap, globals, U.tiStatInit)
+    (initStack, S.initTiDump, initHeap, globals, S.tiStatInit)
         where
             scDefs = L.predef ++ program
 
             (globals, initHeap) = buildHeap scDefs
 
             initStack = [mainAddr]
-            mainAddr = U.gLook "main" globals 
+            mainAddr = S.gLookup globals "main"
 
-            buildHeap = foldl foldStep (U.gInit, U.hInit )  
+            buildHeap = foldl foldStep (S.gInit, H.hInit )  
                 where 
                 foldStep (g ,h) (name, args, body) =  
-                    let (newHeap, addr) = U.hAlloc (U.NCombinator name args body) h in 
-                    let newGlobals = U.gInsert name addr g in 
+                    let (newHeap, addr) = H.hAlloc h (S.NSumpercomb name args body) in 
+                    let newGlobals = S.gInsert g name addr  in 
                     (newGlobals, newHeap)
 
-final :: U.TiState -> Bool 
+final :: S.TiState -> Bool 
 final ([], _, _, _, _) =  error "Empty stack"
 final ([node], _, heap, _,_ ) = 
-    U.isDataNode (U.hLook node heap)
+    S.isDataNode (H.hLookup heap node)
 final _ = False
 
-glue :: U.TiState -> U.TiState 
+glue :: S.TiState -> S.TiState 
 glue = id 
 
 --------------------- Steps -----------------------------------
 
-appStep :: U.TiState -> U.Addr -> U.Addr -> U.TiState 
+appStep :: S.TiState -> H.Addr -> H.Addr -> S.TiState 
 appStep (stack, dump, heap, globals, stat) a1 _ = (a1 : stack, dump, heap, globals, stat)
 
-instanciate :: L.CoreExpr -> U.TiHeap -> U.TiGlobals -> (U.TiHeap, U.Addr)
-instanciate (L.ENum n) heap _ = U.hAlloc (U.NNum n) heap 
-instanciate (L.EAp f arg) heap globals = 
-    U.hAlloc (U.NApp a1 a2) heap2
-    where 
-        (heap1, a1) = instanciate f heap globals 
-        (heap2, a2) = instanciate arg heap1 globals
-instanciate (L.EVar v) heap globals = (heap, varAddr)
-    where varAddr = U.gLook v globals 
-instanciate (L.ELet False binds body) heap globals = 
-    instanciate body bindsHeap bindsGlobals
-    where 
-        (bindsHeap, bindsGlobals) = foldl f (heap, globals) binds
-
-        f :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
-        f (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
-            where (newHeap, addr) = instanciate expr cheap cglobals  
-instanciate (L.ELet True binds body) heap globals = 
-    instanciate body bindsHeap bindsGlobals
-    where 
-        (_, interGlobals) = foldl collect (heap, U.gInit) binds
-        (bindsHeap, bindsGlobals) = foldl use (heap, U.gUnion interGlobals globals) binds
-
-        collect :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
-        collect (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
-            where (newHeap, addr) = instanciate expr cheap U.gInit 
-
-        use :: (U.TiHeap, U.TiGlobals) -> (L.Name, L.CoreExpr) -> (U.TiHeap, U.TiGlobals)
-        use (cheap, cglobals) (name, expr) = (newHeap, U.gInsert name addr cglobals)
-            where (newHeap, addr) = instanciate expr cheap cglobals
+instanciate :: L.CoreExpr -> S.TiHeap -> S.TiGlobals -> (S.TiHeap, H.Addr)
+instanciate (L.ENum n) heap _ = H.hAlloc heap (S.NNum n) 
+instanciate (L.EAp f arg) heap globals = H.hAlloc heap2 (S.NApp a1 a2)
+    where (heap1, a1) = instanciate f heap globals 
+          (heap2, a2) = instanciate arg heap1 globals
+instanciate (L.EVar v) heap globals = (heap, S.gLookup globals v)
+instanciate (L.ELet isRec binds body) heap globals =
+    let (newHeap, newGlobals) = 
+            foldl (\ (h, g) (name, expr) -> 
+                let (h', addr) = instanciate expr h (if isRec then newGlobals else g)
+                    g' = S.gInsert g name addr 
+                in (h', g')) 
+            (heap, globals) binds 
+    in
+    instanciate body newHeap newGlobals
 instanciate _ _ _= undefined            
 
-combStep :: U.TiState -> L.Name -> [L.Name] -> L.CoreExpr -> U.TiState 
+combStep :: S.TiState -> L.Name -> [L.Name] -> L.CoreExpr -> S.TiState 
 combStep (stack, dump, heap, globals, stat) _ pars body =
     (newAddr : restStack, dump, resultHeap, globals, stat)
 
@@ -83,51 +67,51 @@ combStep (stack, dump, heap, globals, stat) _ pars body =
              (head newStack, tail newStack)
              where newStack = drop (length pars) stack
 
-        resultHeap = U.hUpdate headAddr (U.NInd newAddr ) instBodyHeap
+        resultHeap = H.hUpdate instBodyHeap headAddr (S.NInd newAddr) 
 
         newGlobals  
-            | length args >= length pars = U.gUnion globals newMap  
+            | length args >= length pars = S.gUnion globals newMap  
             | otherwise = error "Not enough arguments"
             where 
                 args =  getArgs $ tail  stack 
-                newMap = U.gFromList $ zip pars args
+                newMap = S.gFromList $ zip pars args
 
-                getArgs :: U.TiStack -> [] U.Addr 
+                getArgs :: S.TiStack -> [] H.Addr 
                 getArgs = map getArg
                     where 
                     getArg addr = 
-                        case U.hLook addr heap of 
-                        U.NApp _ arg -> arg
+                        case H.hLookup heap addr of 
+                        S.NApp _ arg -> arg
                         _ -> error "Not a app in arg lookup"
 
-indStep :: U.TiState -> U.Addr -> U.TiState 
+indStep :: S.TiState -> H.Addr -> S.TiState 
 indStep (stack, dump, heap, globals, stat) addr = (addr : tail stack, dump, heap, globals, stat)
 
-step :: U.TiState -> U.TiState 
-step state = dispatch (U.hLook (List.head stack) heap)
+step :: S.TiState -> S.TiState 
+step state = dispatch (H.hLookup heap (List.head stack))
     where   
         (stack, _, heap, _, _) = state 
 
-        dispatch (U.NNum n) = error $ "Number " ++ show n ++ " applyed as function \n Stack: \n" ++ P.display (showStack stack heap)
-        dispatch (U.NApp f a) = appStep state f a
-        dispatch (U.NCombinator name args body) = combStep state name args body         
-        dispatch (U.NInd addr) = indStep state addr
+        dispatch (S.NNum n) = error $ "Number " ++ show n ++ " applyed as function \n Stack: \n" ++ P.display (showStack stack heap)
+        dispatch (S.NApp f a) = appStep state f a
+        dispatch (S.NSumpercomb name args body) = combStep state name args body         
+        dispatch (S.NInd addr) = indStep state addr
 
 --------------------- Eval -----------------------------------
 
-start :: U.TiState -> [U.TiState]
+start :: S.TiState -> [S.TiState]
 start state = state : restStates 
     where 
         restStates  
             | final state = [] 
             | otherwise = start $ glue $ step state  
 
-getResult :: [U.TiState] -> Int
+getResult :: [S.TiState] -> Int
 getResult ls = n
     where 
         n = 
-            case U.hLook (head stack) heap of 
-                U.NNum num -> num 
+            case H.hLookup heap (head stack) of 
+                S.NNum num -> num 
                 _ -> error "Number expected after execution"
         
         (stack, _, heap, _, _) = last ls
@@ -141,31 +125,31 @@ run program = result
 
 ------------------------ Show ---------------------------
 
-showResult :: [U.TiState] -> String
+showResult :: [S.TiState] -> String
 showResult states = P.display $ P.interleav P.nl $ map showState states
 
-showState :: U.TiState -> P.T  
+showState :: S.TiState -> P.T  
 showState (stack, _, heap, _, _) = 
      P.interleav P.nl [
              P.str "======== Stack =========", 
              showStack stack heap,
              P.str "********* Heap **********", 
-             U.hShow heap ]
+             S.hShow heap ]
 
-showStack :: U.TiStack -> U.TiHeap -> P.T 
+showStack :: S.TiStack -> S.TiHeap -> P.T 
 showStack stack heap = 
     P.interleav sep $ map showItem $ reverse stack
     where 
         showItem addr =
             P.merge [
                 P.str "addr: ",showAddr addr, P.nl,
-                U.showNode (U.hLook addr heap) heap  
+                S.showNode (H.hLookup heap addr) heap  
             ]
         sep = P.merge [ P.nl, P.str "------ Frame ------", P.nl ]
 
-showAddr :: U.Addr -> P.T 
+showAddr :: H.Addr -> P.T 
 showAddr a = P.merge [ P.str "(addr: ", P.str $ show a, P.str ")" ]  
 
-showStat :: U.TiStat -> P.T 
+showStat :: S.TiStat -> P.T 
 showStat = P.str . show 
             

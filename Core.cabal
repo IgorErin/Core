@@ -27,13 +27,14 @@ library
   exposed-modules:
       Assoc
       Frontend
+      Heap
       Language
       Lexer
       Lib
       Mark1
       Parser
       PSeq
-      Utils
+      State
   other-modules:
       Paths_Core
   autogen-modules:
