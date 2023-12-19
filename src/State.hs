@@ -5,7 +5,6 @@ import qualified Language as L
 import qualified PSeq as P
 import qualified Heap as H
 
-
 import Data.Maybe (fromMaybe)
 
 ---------------- Stack --------------------
@@ -42,34 +41,18 @@ gFromList = A.fromList
 
 type TiHeap = H.Heap Node 
 
-hShow :: TiHeap -> P.T 
-hShow heap = 
-    P.interleav P.nl . 
-    map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode  value heap ]) .
-    (\(_, _, h) -> h) $
-    heap 
-
 -------------------- Node ----------------------
 
 data Node = 
     NApp H.Addr H.Addr 
-    | NSumpercomb L.Name [L.Name] L.CoreExpr 
+    | NSupercomb L.Name [L.Name] L.CoreExpr 
     | NNum Int 
-    | NInd H.Addr
+    deriving Show 
 
 isDataNode :: Node -> Bool 
 isDataNode (NNum _) = True 
 isDataNode _        = False 
 
-showNode :: Node -> TiHeap -> P.T
-showNode (NNum n) _ =  P.merge [P.str "NNum ", P.str $ show n]
-showNode (NApp f x) heap = P.merge [ P.str "NApp ", showNode nf heap , P.str " (", showNode nx heap , P.str ")"  ]
-    where 
-        nf = H.hLookup heap f 
-        nx = H.hLookup heap x
-
-showNode (NSumpercomb name _ _ ) _ = P.merge [P.str name]
-showNode (NInd addr) heap = P.merge [P.str "NInd ", showNode (H.hLookup heap addr) heap ]
 
 ------------------- TiStats ------------------
 

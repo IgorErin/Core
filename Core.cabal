@@ -30,11 +30,11 @@ library
       Heap
       Language
       Lexer
-      Lib
-      Mark1
       Parser
       PSeq
+      Show
       State
+      Template
   other-modules:
       Paths_Core
   autogen-modules:

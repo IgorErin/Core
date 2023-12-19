@@ -43,8 +43,8 @@ flatten _      []                         = ""
 flatten global (NewLine : tl )       = '\n' : space global ++ flatten global tl 
 flatten global ((Indent hd) : tl)    = 
     let newHd = flatten (succ global) [hd] 
-        newTl = flatten global tl in
-        newHd ++ newTl
+        newTl = flatten global tl
+    in newHd ++ newTl
 flatten global (Nil : tl)            = flatten global tl
 flatten global ((Str s) : tl)        = s ++ flatten global tl  
 flatten global ((Append l r) : tl)   = mk l ++ mk r ++ flatten global tl
