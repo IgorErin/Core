@@ -35,7 +35,7 @@ run = getResult . eval . compile
 --------------- Admin ------------------------
 
 doAdmin :: S.TiState -> S.TiState 
-doAdmin = id
+doAdmin = S.mapStat S.tiStatSucc
 
 ---------------- Step -------------------------------
 

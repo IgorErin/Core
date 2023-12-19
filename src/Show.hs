@@ -12,12 +12,17 @@ showStates :: [S.TiState] -> P.T
 showStates states = P.interleav P.nl $ map showState states
 
 showState :: S.TiState -> P.T  
-showState (stack, _, heap, _, _) = 
+showState (stack, _, heap, _, stat) = 
      P.interleav P.nl [
+             P.str "@@@@@@@@@@ Stat @@@@@@@@@@@",
+             showStat stat,
              P.str "======== Stack =========", 
              showStack stack heap,
              P.str "********* Heap **********", 
              showHeap heap ]
+
+showStat :: S.TiStat -> P.T
+showStat stat = P.str $ "Count: " ++ show stat 
 
 strStack :: S.TiStack -> S.TiHeap -> String
 strStack stack heap = P.display $ showStack stack heap
@@ -34,10 +39,6 @@ showStack stack heap = P.interleav sep $ map showItem $ reverse stack
 
 showAddr :: H.Addr -> P.T 
 showAddr a = P.merge [ P.str "(addr: ", P.str $ show a, P.str ")" ]  
-
-
-showStat :: S.TiStat -> P.T 
-showStat = P.str . show 
 
 showHeap :: S.TiHeap -> P.T 
 showHeap heap = 
