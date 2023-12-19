@@ -48,13 +48,22 @@ showHeap heap =
     heap
     
 showNode :: S.Node -> S.TiHeap -> P.T
-showNode (S.NNum n) _ =  P.merge [P.str "NNum ", P.str $ show n]
-showNode (S.NApp f x) heap = P.merge [ P.str "NApp ", showNode nf heap , P.str " (", showNode nx heap , P.str ")"  ]
-    where 
-        nf = H.hLookup heap f 
-        nx = H.hLookup heap x
+showNode  = showNodeRec []
 
-showNode (S.NSupercomb name _ _ ) _ = P.merge [P.str name]
+showNodeRec  :: [H.Addr] -> S.Node -> S.TiHeap -> P.T
+showNodeRec _ (S.NNum n) _ =  P.merge [P.str "NNum ", P.str $ show n]
+showNodeRec adds (S.NApp f x) heap = 
+    let adds' = f : x : adds  
+        recCheck add = 
+            if add `elem` adds 
+            then P.str "rec" 
+            else showNodeRec adds' (H.hLookup heap add) heap 
+
+        left = recCheck f 
+        right = recCheck x
+    in 
+    P.merge [ P.str "NApp ", left , P.str " (", right , P.str ")"  ]
+showNodeRec  _ (S.NSupercomb name _ _ ) _ = P.merge [P.str name]
 
 ----------------------- Language --------------------------------
 
