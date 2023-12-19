@@ -50,8 +50,8 @@ cases =
             \ a = pair x b ; \
             \ b = pair y a \
             \ in \
-            \ fst a ; \
-            \ main = f 3 4", 3)
+            \ fst (snd (snd (snd a))) ; \
+            \ main = f 3 4", 4)
             
             ]
 
