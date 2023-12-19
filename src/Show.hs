@@ -4,7 +4,9 @@ import qualified State as S
 import qualified PSeq as P
 import qualified Language as L
 import qualified Heap as H
+
 ------------------------ Program ---------------------------
+
 strStates :: [S.TiState] -> String
 strStates = P.display . showStates 
 
@@ -41,11 +43,13 @@ showAddr :: H.Addr -> P.T
 showAddr a = P.merge [ P.str "(addr: ", P.str $ show a, P.str ")" ]  
 
 showHeap :: S.TiHeap -> P.T 
-showHeap heap = 
-    P.interleav P.nl . 
-    map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode  value heap ]) .
-    (\(_, _, h) -> h) $
-    heap
+showHeap heap@(info, _, mapping) = 
+    let content = 
+            P.interleav P.nl . map (\(key, value) -> P.merge [P.str $ show key, P.str " -> ", showNode value heap ]) $ mapping
+    in P.merge
+     [ P.str "Alloc count: ", P.str $ show $ H.heapAllocCount info, P.nl,
+       P.str "Realloc count: ", P.str $ show $ H.heapReallocCount info, P.nl,
+       content ]
     
 showNode :: S.Node -> S.TiHeap -> P.T
 showNode  = showNodeRec []
