@@ -82,6 +82,13 @@ instantiate (L.EAp left right) heap globs =
         (heap'', addr2) = instantiate right heap' globs
         node = S.NApp addr1 addr2 
     in H.hAlloc heap'' node
+instantiate (L.ELet isRec binds body) heap globs =
+    let (heap', globs') = foldl (\ (heapAcc, globsAcc) (name, expr) -> 
+            let (heapAcc', addr) = instantiate expr heapAcc (if isRec then globs' else globs)
+                globsAcc' = S.gInsert globsAcc name addr
+            in (heapAcc', globsAcc')) (heap, globs) binds
+    in instantiate body heap' globs'
+
 instantiate _ _ _ = error "Instantiate mismatch"
 
         
