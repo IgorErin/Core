@@ -46,7 +46,12 @@ step state@(hd : _, _, heap, _, _) = dispatch $ H.hLookup heap hd
         dispatch :: S.Node -> S.TiState
         dispatch (S.NNum n) = numStep n state
         dispatch (S.NApp f x) = appStep f x state
-        dispatch (S.NSupercomb name args body) = combStep name args body state  
+        dispatch (S.NSupercomb name args body) = combStep name args body state
+        dispatch (S.NInd addr) = indStep addr state
+    
+indStep :: H.Addr -> S.TiState -> S.TiState 
+indStep addr (_ : stack, dump, heap, globs, stat) = (addr : stack, dump, heap, globs, stat)
+indStep _ _ = error "Impossible emtpy stack"
 
 numStep :: Int -> S.TiState -> S.TiState         
 numStep _ (stack, _, heap, _, _) = 
@@ -57,12 +62,17 @@ appStep a1 _ (stack, dump, heap, globs, stat) =
     (a1: stack, dump, heap, globs, stat)
 
 combStep :: L.Name -> [L.Name] -> L.CoreExpr -> S.TiState -> S.TiState 
-combStep _ params body (_ : tl, dump, heap, globs, stat) = 
-    (addr : drop (length params) tl, dump, heap', globs', stat)
+combStep _ params body (stack@(_ : tl), dump, heap, globs, stat) = 
+    (newAddr : drop (length params) tl, dump, indHeap, globs', stat)
     where 
         globs' = S.gUnion (S.gFromList $ zip params args) globs
+        (heap', newAddr) = instantiate body heap globs'  
+        
+        indNode = S.NInd newAddr
+        oldAddr = 
+            stack !! length params   
 
-        (heap', addr) = instantiate body heap globs'  
+        indHeap = H.hUpdate heap' oldAddr indNode 
 
         args 
             | length params <= length tl  = 

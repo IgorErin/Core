@@ -55,12 +55,12 @@ data Node =
     NApp H.Addr H.Addr 
     | NSupercomb L.Name [L.Name] L.CoreExpr 
     | NNum Int 
+    | NInd H.Addr
     deriving Show 
 
 isDataNode :: Node -> Bool 
 isDataNode (NNum _) = True 
 isDataNode _        = False 
-
 
 ------------------- TiStats ------------------
 

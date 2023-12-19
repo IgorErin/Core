@@ -64,6 +64,8 @@ showNodeRec adds (S.NApp f x) heap =
     in 
     P.merge [ P.str "NApp ", left , P.str " (", right , P.str ")"  ]
 showNodeRec  _ (S.NSupercomb name _ _ ) _ = P.merge [P.str name]
+showNodeRec adds (S.NInd n) heap = 
+    P.merge [P.str "NInd ", showNodeRec adds (H.hLookup heap n) heap ]
 
 ----------------------- Language --------------------------------
 

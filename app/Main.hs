@@ -1,7 +1,6 @@
 module Main (main) where
 import Frontend as F
 import qualified Template as T 
-import qualified  Language as L
 import qualified Show 
 
 runAndPrint :: String -> String
