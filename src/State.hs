@@ -2,8 +2,8 @@ module State where
 
 import qualified Assoc as A
 import qualified Language as L
-import qualified PSeq as P
 import qualified Heap as H
+import qualified Utils as U
 
 import Data.Maybe (fromMaybe)
 
@@ -41,6 +41,14 @@ gFromList = A.fromList
 
 type TiHeap = H.Heap Node 
 
+buildInitHeap :: L.CoreProgram -> (TiHeap, TiGlobals) 
+buildInitHeap program = (startHeap, gFromList names)
+    where 
+        (startHeap, names) = U.mapAccum (\ heap (name, args, body) -> 
+            let node = NSupercomb name args body 
+                (heap', addr) = H.hAlloc heap node 
+            in (heap', (name, addr))) H.hInit program   
+
 -------------------- Node ----------------------
 
 data Node = 
@@ -58,8 +66,8 @@ isDataNode _        = False
 
 type TiStat = Int
 
-tiStatInit :: TiStat
-tiStatInit = 0
+initTiStat :: TiStat
+initTiStat = 0
 
 tiStatSucc :: TiStat -> TiStat
 tiStatSucc = succ  
@@ -73,3 +81,10 @@ type TiState = (TiStack, TiDump, TiHeap, TiGlobals, TiStat)
 
 mapStat :: (TiStat -> TiStat) -> TiState -> TiState
 mapStat f (stack, dump, heap, globals, stat) = (stack, dump, heap, globals, f stat)
+
+-- TODO rework with record syntax
+
+final :: TiState -> Bool 
+final ([], _, _, _, _) =  error "emtpy stack in final" 
+final ([hd], _, heap, _, _) = isDataNode $ H.hLookup heap hd
+final (_ : _ : _, _, _,_, _) = False 

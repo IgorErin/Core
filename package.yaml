@@ -60,7 +60,7 @@ tests:
     other-modules: 
       - Tests.Lexer
       - Tests.Parser 
-      - Tests.Mark1
+      - Tests.Template
     source-dirs:         test
     ghc-options:
     - -threaded

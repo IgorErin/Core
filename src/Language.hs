@@ -64,8 +64,8 @@ mkProgram x = x
 -- compose f g x = f (g x) ;
 -- twice f = compose f f
 
-predef :: CoreProgram 
-predef = [
+stdlib :: CoreProgram 
+stdlib = [
     ("I", ["x"], EVar "x"),
     ("K", ["x", "y"], EVar "x"),
     ("K1", ["x", "y"], EVar "y"),

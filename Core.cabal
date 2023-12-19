@@ -35,6 +35,7 @@ library
       Show
       State
       Template
+      Utils
   other-modules:
       Paths_Core
   autogen-modules:
@@ -72,7 +73,7 @@ test-suite Core-test
   other-modules:
       Tests.Lexer
       Tests.Parser
-      Tests.Mark1
+      Tests.Template
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N

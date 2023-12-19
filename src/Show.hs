@@ -5,6 +5,8 @@ import qualified PSeq as P
 import qualified Language as L
 import qualified Heap as H
 ------------------------ Program ---------------------------
+strStates :: [S.TiState] -> String
+strStates = P.display . showStates 
 
 showStates :: [S.TiState] -> P.T
 showStates states = P.interleav P.nl $ map showState states
@@ -17,9 +19,11 @@ showState (stack, _, heap, _, _) =
              P.str "********* Heap **********", 
              showHeap heap ]
 
+strStack :: S.TiStack -> S.TiHeap -> String
+strStack stack heap = P.display $ showStack stack heap
+
 showStack :: S.TiStack -> S.TiHeap -> P.T 
-showStack stack heap = 
-    P.interleav sep $ map showItem $ reverse stack
+showStack stack heap = P.interleav sep $ map showItem $ reverse stack
     where 
         showItem addr =
             P.merge [
