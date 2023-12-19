@@ -54,7 +54,12 @@ cases =
             \ main = f 3 4", 4),
             ("main = negate (I 2)", -2),
             ("main = negate (negate (I 2))", 2),
-            ("main = twice negate 2", 2)]
+            ("main = twice negate 2", 2),
+            ("main = 2 + 2", 4),
+            ("main = (I (I 2)) * 4", 8),
+            ("main = 6 / 2", 3),
+            ("main = 8 - 10", -2),
+            ("main = (I 3) - 10", -7)]
 
 run :: String -> Int
 run = T.run . F.parse 

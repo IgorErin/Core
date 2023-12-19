@@ -4,7 +4,6 @@ import qualified Language as L
 import qualified Heap as H 
 import qualified State as S 
 import qualified Show
-import Control.Exception (assert)
 
 compile :: L.CoreProgram -> S.TiState 
 compile program = 
@@ -58,7 +57,6 @@ primStep _ L.Neg (stack, dump, heap, globs, stat) =
             let node = S.NNum (- n) 
                 heap' = H.hUpdate heap appAddr node  
             in ([appAddr], dump, heap', globs, stat)
-            -- TODO why without primAddr???
          _ -> ([argAddr], [appAddr] : dump, heap, globs, stat)
     where 
     --------- Common ---------
@@ -73,7 +71,35 @@ primStep _ L.Neg (stack, dump, heap, globs, stat) =
             _                -> error "Not a app node"
 
     argNode = H.hLookup heap argAddr
-primStep _ _ _ = undefined
+primStep _ L.Add state = primBin (+) state
+primStep _ L.Sub state = primBin (-) state
+primStep _ L.Div state = primBin div state
+primStep _ L.Mul state = primBin (*) state  
+
+primBin :: (Int -> Int -> Int) -> S.TiState  -> S.TiState
+primBin opp (stack, dump, heap, globs, stat) =
+        case(lowArgNode, topArgNode)  of
+         (S.NNum left, S.NNum right) -> 
+            let node = S.NNum (left `opp` right) 
+                heap' = H.hUpdate heap topAppAddr node  
+            in ([topAppAddr], dump, heap', globs, stat)
+         (S.NNum _, _) -> ([topArgAddr], [topAppAddr]: dump, heap, globs, stat)
+         (_, _) ->  ([lowArgAddr], [topAppAddr] : dump, heap, globs, stat)
+    where 
+    --------- Common ---------
+    (lowAppAddr, topAppAddr) = case stack of 
+            [_, a2', a3'] ->  (a2', a3')   
+            _ -> error "Neg arg lookup"
+
+    topArgAddr = getArgAddr $ H.hLookup heap topAppAddr 
+    lowArgAddr = getArgAddr $ H.hLookup heap lowAppAddr 
+
+    getArgAddr node = case node of 
+            S.NApp _ argAddr' -> argAddr'
+            _                -> error "Not a app node" 
+
+    topArgNode = H.hLookup heap topArgAddr 
+    lowArgNode = H.hLookup heap lowArgAddr  
     
 indStep :: H.Addr -> S.TiState -> S.TiState 
 indStep addr (_ : stack, dump, heap, globs, stat) = (addr : stack, dump, heap, globs, stat)

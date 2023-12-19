@@ -7,4 +7,4 @@ runAndPrint :: String -> String
 runAndPrint = Show.strStates . T.eval . T.compile . F.parse 
 
 main :: IO ()
-main = putStrLn $ runAndPrint "id x = x ; main = twice twice twice id 3"
+main = putStrLn $ runAndPrint "main = (I 3) - 10"
