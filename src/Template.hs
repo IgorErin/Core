@@ -19,7 +19,7 @@ eval state = state : rest
     where 
         rest 
             | S.final state = []
-            | otherwise     = eval $ step state
+            | otherwise     = eval $ doAdmin $ step state
 
 getResult :: [S.TiState] -> Int
 getResult states = get $ H.hLookup heap $ head stack 
