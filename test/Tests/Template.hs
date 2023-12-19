@@ -51,9 +51,10 @@ cases =
             \ b = pair y a \
             \ in \
             \ fst (snd (snd (snd a))) ; \
-            \ main = f 3 4", 4)
-            
-            ]
+            \ main = f 3 4", 4),
+            ("main = negate (I 2)", -2),
+            ("main = negate (negate (I 2))", 2),
+            ("main = twice negate 2", 2)]
 
 run :: String -> Int
 run = T.run . F.parse 

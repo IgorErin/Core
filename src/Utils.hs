@@ -6,4 +6,5 @@ mapAccum f acc (hd : tl) = (acc'', hd' : tl')
     where 
         (acc', hd') = f acc hd
         (acc'', tl') = mapAccum f acc' tl   
+
      

@@ -1,45 +1,45 @@
 {
 module Parser where 
 
-import Lexer as L 
+import qualified Lexer as L 
 import Language  
 }
 
 %name calc 
-%tokentype {Token}
+%tokentype {L.Token}
 %error {parseError }
 
 %token
-   '.' {Point} 
-   "->" { Arrow}
-   ',' { Comma}
-   '=' { Assign} 
-   fun { Lambda} 
-   let  { Let} 
-   in { In} 
-   letrec { Letrec} 
-   case { Case} 
-   of { Of}
-   '(' { LParent} 
-   ')' { RParent}
-   ';' { SemiColon} 
-   Pack { Pack}
-   '{' { LBrace}
-   '}' { RBrace}
-   num { Num $$} 
-   ident { Ident $$ }  
-   '+' { Plus}
-   '-' { Minus} 
-   '*' { Mul} 
-   '/' { Div} 
+   '.' { L.Point} 
+   "->" { L.Arrow}
+   ',' { L.Comma}
+   '=' { L.Assign} 
+   fun { L.Lambda} 
+   let  { L.Let} 
+   in { L.In} 
+   letrec { L.Letrec} 
+   case { L.Case} 
+   of { L.Of}
+   '(' { L.LParent} 
+   ')' { L.RParent}
+   ';' { L.SemiColon} 
+   Pack { L.Pack}
+   '{' { L.LBrace}
+   '}' { L.RBrace}
+   num { L.Num $$} 
+   ident { L.Ident $$ }  
+   '+' { L.Plus}
+   '-' { L.Minus} 
+   '*' { L.Mul} 
+   '/' { L.Div} 
    '<' { L.LT} 
    '<=' { L.LE} 
-   '==' { Eq}
-   '/=' { NEQ}
+   '==' { L.Eq}
+   '/=' { L.NEQ}
    '>' { L.GT} 
    '>=' { L.GE} 
-   and { And} 
-   or { Or} 
+   and { L.And} 
+   or { L.Or } 
 
 %right in 
 %left '+' '-'
@@ -131,6 +131,6 @@ RawVarList
 ---------------------------------------------------
 
 {
-parseError :: [Token] -> a 
+parseError :: [L.Token] -> a 
 parseError _ = error "Parse error"
 }

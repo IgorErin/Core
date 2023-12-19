@@ -4,6 +4,7 @@ import qualified Language as L
 import qualified Heap as H 
 import qualified State as S 
 import qualified Show
+import Control.Exception (assert)
 
 compile :: L.CoreProgram -> S.TiState 
 compile program = 
@@ -12,7 +13,7 @@ compile program =
         scDefs = L.stdlib ++ program 
         startStack = [S.gLookup startGlobals "main"] 
 
-        (startHeap, startGlobals) = S.buildInitHeap scDefs 
+        (startHeap, startGlobals) = S.buildInitHeap scDefs L.primitives 
 
 eval :: S.TiState -> [S.TiState]
 eval state = state : rest 
@@ -48,18 +49,53 @@ step state@(hd : _, _, heap, _, _) = dispatch $ H.hLookup heap hd
     dispatch (S.NApp f x) = appStep f x state
     dispatch (S.NSupercomb name args body) = combStep name args body state
     dispatch (S.NInd addr) = indStep addr state
+    dispatch (S.NPrim name prim) = primStep name prim state  
+
+primStep :: L.Name  -> L.Primitive -> S.TiState -> S.TiState 
+primStep _ L.Neg (stack, dump, heap, globs, stat) =
+        case argNode of
+         S.NNum n -> 
+            let node = S.NNum (- n) 
+                heap' = H.hUpdate heap appAddr node  
+            in ([appAddr], dump, heap', globs, stat)
+            -- TODO why without primAddr???
+         _ -> ([argAddr], [appAddr] : dump, heap, globs, stat)
+    where 
+    --------- Common ---------
+    appAddr = case stack of 
+            [_, a2'] ->  a2'   
+            _ -> error "Neg arg lookup"
+
+    appNode = H.hLookup heap appAddr 
+
+    argAddr = case appNode of 
+            S.NApp _ argAddr' -> argAddr'
+            _                -> error "Not a app node"
+
+    argNode = H.hLookup heap argAddr
+primStep _ _ _ = undefined
     
 indStep :: H.Addr -> S.TiState -> S.TiState 
 indStep addr (_ : stack, dump, heap, globs, stat) = (addr : stack, dump, heap, globs, stat)
-indStep _ _ = error "Impossible emtpy stack"
+indStep _ _ = error "Impossible. Emtpy stack in Indstep"
 
 numStep :: Int -> S.TiState -> S.TiState         
-numStep _ (stack, _, heap, _, _) = 
+numStep _ (stack, [], heap, _, _) = 
     error $ "Number in step on top of stack. \nStack:\n" ++ Show.strStack stack heap  
+numStep _ ([_], hd : tl, h, g, s) = (hd, tl, h, g, s)
+numStep _ ([], _, _, _, _) = error "Empty stack in NumStep"
+numStep _ _ = error "inconsistent state in NumStep"
 
 appStep :: H.Addr -> H.Addr -> S.TiState -> S.TiState 
-appStep a1 _ (stack, dump, heap, globs, stat) =
-    (a1: stack, dump, heap, globs, stat)
+appStep a1 a2 (stack@(hd : _), dump, heap, globs, stat) =
+    case argNode of 
+    S.NInd addr -> 
+        let node = S.NApp a1 addr 
+            heap' = H.hUpdate heap hd node 
+        in (stack, dump, heap', globs, stat)
+    _ -> (a1 : stack, dump, heap, globs, stat)
+    where argNode = H.hLookup heap a2
+appStep _ _ _ = error "App step, emtpy stack"
 
 combStep :: L.Name -> [L.Name] -> L.CoreExpr -> S.TiState -> S.TiState 
 combStep _ params body (stack@(_ : tl), dump, heap, globs, stat) = 

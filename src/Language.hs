@@ -1,6 +1,10 @@
 module Language where 
 
+import qualified Assoc as A 
+
 --------------- Types -----------------
+
+data Primitive = Neg | Add | Sub | Mul | Div deriving Show 
 
 type Name = String
 type IsRec = Bool 
@@ -73,3 +77,6 @@ stdlib = [
     ("compose", ["f", "g", "x"], EAp (EVar"f") (EAp (EVar"g") (EVar "x"))),
     ("twice", ["f"], EAp (EAp (EVar "compose") (EVar "f")) (EVar "f"))
     ] 
+
+primitives :: A.T Name Primitive
+primitives = [("+", Add), ("-", Sub), ("*", Mul), ("/", Div), ("negate", Neg) ]
