@@ -43,11 +43,11 @@ step :: S.TiState -> S.TiState
 step ([], _, _, _, _) = error "empty stack in step"
 step state@(hd : _, _, heap, _, _) = dispatch $ H.hLookup heap hd
     where 
-        dispatch :: S.Node -> S.TiState
-        dispatch (S.NNum n) = numStep n state
-        dispatch (S.NApp f x) = appStep f x state
-        dispatch (S.NSupercomb name args body) = combStep name args body state
-        dispatch (S.NInd addr) = indStep addr state
+    dispatch :: S.Node -> S.TiState
+    dispatch (S.NNum n) = numStep n state
+    dispatch (S.NApp f x) = appStep f x state
+    dispatch (S.NSupercomb name args body) = combStep name args body state
+    dispatch (S.NInd addr) = indStep addr state
     
 indStep :: H.Addr -> S.TiState -> S.TiState 
 indStep addr (_ : stack, dump, heap, globs, stat) = (addr : stack, dump, heap, globs, stat)
@@ -63,16 +63,12 @@ appStep a1 _ (stack, dump, heap, globs, stat) =
 
 combStep :: L.Name -> [L.Name] -> L.CoreExpr -> S.TiState -> S.TiState 
 combStep _ params body (stack@(_ : tl), dump, heap, globs, stat) = 
-    (newAddr : drop (length params) tl, dump, indHeap, globs', stat)
+    (oldAddr : drop (length params) tl, dump, heap', globs', stat)
     where 
         globs' = S.gUnion (S.gFromList $ zip params args) globs
-        (heap', newAddr) = instantiate body heap globs'  
+        heap' = instantiateAndUpdate body oldAddr heap globs'  
         
-        indNode = S.NInd newAddr
-        oldAddr = 
-            stack !! length params   
-
-        indHeap = H.hUpdate heap' oldAddr indNode 
+        oldAddr = stack !! length params   
 
         args 
             | length params <= length tl  = 
@@ -85,8 +81,7 @@ combStep _ _ _ _= error "Empty stack on comb step"
 
 instantiate :: L.CoreExpr -> S.TiHeap -> S.TiGlobals -> (S.TiHeap, H.Addr)
 instantiate (L.ENum n) heap _ = H.hAlloc heap $ S.NNum n  
-instantiate (L.EVar name) heap globs =
-    (heap, S.gLookup globs name)  
+instantiate (L.EVar name) heap globs = (heap, S.gLookup globs name)  
 instantiate (L.EAp left right) heap globs = 
     let (heap', addr1) = instantiate left heap globs
         (heap'', addr2) = instantiate right heap' globs
@@ -98,8 +93,24 @@ instantiate (L.ELet isRec binds body) heap globs =
                 globsAcc' = S.gInsert globsAcc name addr
             in (heapAcc', globsAcc')) (heap, globs) binds
     in instantiate body heap' globs'
+instantiate _ _ _ = error "Instantiation mismatch"
 
-instantiate _ _ _ = error "Instantiate mismatch"
+instantiateAndUpdate :: L.CoreExpr -> H.Addr -> S.TiHeap -> S.TiGlobals -> S.TiHeap 
+instantiateAndUpdate (L.ENum n) addr heap _ = H.hUpdate heap addr (S.NNum n)
+instantiateAndUpdate (L.EVar name) addr heap globs = 
+    let nameAddr = S.gLookup globs name 
+    in H.hUpdate heap addr (S.NInd nameAddr)
+instantiateAndUpdate (L.EAp e1 e2) addr heap globs = 
+    let (h1, a1) = instantiate e1 heap globs 
+        (h2, a2) = instantiate e2 h1   globs 
+    in H.hUpdate h2 addr (S.NApp a1 a2)
+instantiateAndUpdate (L.ELet isRec binds body) addr heap globs = 
+   let (heap', globs') = foldl (\ (heapAcc, globsAcc) (name, expr) -> 
+            let (heapAcc', letAddr) = instantiate expr heapAcc (if isRec then globs' else globs)
+                globsAcc' = S.gInsert globsAcc name letAddr
+            in (heapAcc', globsAcc')) (heap, globs) binds
+    in instantiateAndUpdate body addr heap' globs'   
+instantiateAndUpdate _ _ _ _ = undefined
 
         
         
