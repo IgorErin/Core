@@ -49,6 +49,11 @@ step state@(hd : _, _, heap, _, _) = dispatch $ H.hLookup heap hd
     dispatch (S.NSupercomb name args body) = combStep name args body state
     dispatch (S.NInd addr) = indStep addr state
     dispatch (S.NPrim name prim) = primStep name prim state  
+    dispatch (S.NData tag adds) = dataStep tag adds state
+
+dataStep :: Int -> [H.Addr] -> S.TiState -> S.TiState 
+dataStep _ _ (stack, [], heap, _, _) = error $ "Data step with emtpy dump.\nStack:\n" ++ Show.strStack stack heap   
+dataStep _ _ (_, hd : tl, heap, globs, stat) = (hd, tl, heap, globs, stat) 
 
 primStep :: L.Name  -> L.Primitive -> S.TiState -> S.TiState 
 primStep _ L.Neg (stack, dump, heap, globs, stat) =
@@ -59,7 +64,6 @@ primStep _ L.Neg (stack, dump, heap, globs, stat) =
             in ([appAddr], dump, heap', globs, stat)
          _ -> ([argAddr], [appAddr] : dump, heap, globs, stat)
     where 
-    --------- Common ---------
     appAddr = case stack of 
             [_, a2'] ->  a2'   
             _ -> error "Neg arg lookup"
@@ -71,22 +75,67 @@ primStep _ L.Neg (stack, dump, heap, globs, stat) =
             _                -> error "Not a app node"
 
     argNode = H.hLookup heap argAddr
-primStep _ L.Add state = primBin (+) state
-primStep _ L.Sub state = primBin (-) state
-primStep _ L.Div state = primBin div state
-primStep _ L.Mul state = primBin (*) state  
+primStep _ L.Add state = primBin (mkArithmOp (+)) state
+primStep _ L.Sub state = primBin (mkArithmOp (-)) state
+primStep _ L.Div state = primBin (mkArithmOp div) state
+primStep _ L.Mul state = primBin (mkArithmOp (*)) state  
+primStep _ (L.PrimConstr tag arity) (stack@(_ : tl), dump, heap, globs, stat) =
+    (drop arity tl, dump, heap', globs, stat)
+    where 
+        node = S.NData tag argsAdds 
 
-primBin :: (Int -> Int -> Int) -> S.TiState  -> S.TiState
+        heap' = H.hUpdate heap topNodeAddr node
+
+        topNodeAddr = stack !! arity
+
+        argsAdds 
+            | length tl < arity = 
+                let getArg x = 
+                        case H.hLookup heap x of 
+                        S.NApp _ argAddr -> argAddr 
+                        node'             -> error $ "Unexpected node, Application expected, but got: " ++ show node'
+                in take arity $ map getArg tl 
+            | otherwise         = error "Arg length mismatch"
+primStep _ L.If ([_, condApp, tApp, eApp], dump, heap, globs, stat) =
+    case condNode of 
+    -- False 
+    S.NData 0 [] -> ([elseAddr], dump, heap, globs, stat)
+    -- True 
+    S.NData 1 [] -> ([thenAddr], dump, heap, globs, stat)
+    S.NData _ _ -> error "Tag mismatch in if claus"
+    S.NNum _ -> error "Num not in if cond"
+    _ -> ([condAddr], [eApp] : dump, heap, globs, stat)
+    where 
+    getArg x = case H.hLookup heap x of 
+                S.NApp _ right -> right 
+                _  -> error "App expected in If step"
+
+    condAddr = getArg condApp 
+    condNode =  H.hLookup heap condAddr  
+            
+    thenAddr = getArg tApp 
+    elseAddr = getArg eApp
+primStep _ L.Greater state = primBin (mkRelOp (>)) state 
+primStep _ L.GreaterEq state = primBin (mkRelOp (>=)) state 
+primStep _ L.Less state = primBin (mkRelOp (<)) state 
+primStep _ L.LessEq state = primBin (mkRelOp (<=)) state 
+primStep _ L.Eq state = primBin (mkRelOp (==)) state 
+primStep _ L.NotEq state = primBin (mkRelOp (/=)) state 
+primStep _ _ ([], _, _, _, _) = error "Empty stack in constructor application"
+primStep _ _ _ = undefined
+
+------------------- Bin arithmetic ops ----------------------
+
+primBin :: (Int -> Int -> S.Node) -> S.TiState  -> S.TiState
 primBin opp (stack, dump, heap, globs, stat) =
         case(lowArgNode, topArgNode)  of
          (S.NNum left, S.NNum right) -> 
-            let node = S.NNum (left `opp` right) 
+            let node = left `opp` right
                 heap' = H.hUpdate heap topAppAddr node  
             in ([topAppAddr], dump, heap', globs, stat)
          (S.NNum _, _) -> ([topArgAddr], [topAppAddr]: dump, heap, globs, stat)
          (_, _) ->  ([lowArgAddr], [topAppAddr] : dump, heap, globs, stat)
     where 
-    --------- Common ---------
     (lowAppAddr, topAppAddr) = case stack of 
             [_, a2', a3'] ->  (a2', a3')   
             _ -> error "Neg arg lookup"
@@ -100,6 +149,20 @@ primBin opp (stack, dump, heap, globs, stat) =
 
     topArgNode = H.hLookup heap topArgAddr 
     lowArgNode = H.hLookup heap lowArgAddr  
+
+--------------- Rel ops ---------------------------------------
+
+false_, true_ :: S.Node
+false_ = S.NData 0 [] 
+true_  = S.NData 1 []
+
+mkRelOp :: (Int -> Int -> Bool) -> Int -> Int -> S.Node
+mkRelOp rel l r = if l `rel` r then true_ else false_
+
+mkArithmOp :: (Int -> Int -> Int) -> Int -> Int -> S.Node 
+mkArithmOp op l r = S.NNum $ l `op` r 
+
+---------------------------------------------------------
     
 indStep :: H.Addr -> S.TiState -> S.TiState 
 indStep addr (_ : stack, dump, heap, globs, stat) = (addr : stack, dump, heap, globs, stat)
@@ -155,6 +218,9 @@ instantiate (L.ELet isRec binds body) heap globs =
                 globsAcc' = S.gInsert globsAcc name addr
             in (heapAcc', globsAcc')) (heap, globs) binds
     in instantiate body heap' globs'
+instantiate (L.EConstr tag arity) heap _ =
+    let node = S.NPrim "Pack" $ L.PrimConstr tag arity
+    in H.hAlloc heap node
 instantiate _ _ _ = error "Instantiation mismatch"
 
 instantiateAndUpdate :: L.CoreExpr -> H.Addr -> S.TiHeap -> S.TiGlobals -> S.TiHeap 
@@ -172,6 +238,9 @@ instantiateAndUpdate (L.ELet isRec binds body) addr heap globs =
                 globsAcc' = S.gInsert globsAcc name letAddr
             in (heapAcc', globsAcc')) (heap, globs) binds
     in instantiateAndUpdate body addr heap' globs'   
+instantiateAndUpdate (L.EConstr tag arity) addr heap _ = 
+    let node = S.NPrim "Pack" $ L.PrimConstr tag arity 
+    in H.hUpdate heap addr node 
 instantiateAndUpdate _ _ _ _ = undefined
 
         

@@ -4,7 +4,24 @@ import qualified Assoc as A
 
 --------------- Types -----------------
 
-data Primitive = Neg | Add | Sub | Mul | Div deriving Show 
+data Primitive = 
+    Neg
+     | Add 
+     | Sub 
+     | Mul 
+     | Div 
+     | PrimConstr Int Int
+     | If
+     | Greater 
+     | GreaterEq 
+     | Less 
+     | LessEq 
+     | Eq  
+     | NotEq
+      deriving Show 
+
+boolTag :: Int
+boolTag = 0 
 
 type Name = String
 type IsRec = Bool 
@@ -79,4 +96,17 @@ stdlib = [
     ] 
 
 primitives :: A.T Name Primitive
-primitives = [("+", Add), ("-", Sub), ("*", Mul), ("/", Div), ("negate", Neg) ]
+primitives = 
+    [ ("+", Add),
+      ("-", Sub),
+      ("*", Mul),
+      ("/", Div), 
+      ("negate", Neg),
+      ("if", If),
+      (">", Greater),
+      (">=", GreaterEq),
+      ("<", Less),
+      ("<=", LessEq),
+      ("==", Eq),
+      ("/=", NotEq) ]
+

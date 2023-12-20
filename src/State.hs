@@ -62,10 +62,12 @@ data Node =
     | NNum Int 
     | NInd H.Addr
     | NPrim L.Name L.Primitive
+    | NData Int [H.Addr]
     deriving Show 
 
 isDataNode :: Node -> Bool 
 isDataNode (NNum _) = True 
+isDataNode (NData _ _) = True
 isDataNode _        = False 
 
 ------------------- TiStats ------------------

@@ -4,6 +4,7 @@ import qualified State as S
 import qualified PSeq as P
 import qualified Language as L
 import qualified Heap as H
+import qualified Language as S
 
 ------------------------ Program ---------------------------
 
@@ -14,14 +15,22 @@ showStates :: [S.TiState] -> P.T
 showStates states = P.interleav P.nl $ map showState states
 
 showState :: S.TiState -> P.T  
-showState (stack, _, heap, _, stat) = 
+showState (stack, dump, heap, _, stat) = 
      P.interleav P.nl [
-             P.str "@@@@@@@@@@ Stat @@@@@@@@@@@",
-             showStat stat,
+            --  P.str "@@@@@@@@@@ Stat @@@@@@@@@@@",
+            --  showStat stat,
              P.str "======== Stack =========", 
              showStack stack heap,
-             P.str "********* Heap **********", 
-             showHeap heap ]
+             P.str "&&&&&&&&& DUMP &&&&&&&&&&", 
+             showDump dump heap 
+            --  P.str "********* Heap **********", 
+            --  showHeap heap
+              ]
+
+showDump :: [S.TiStack] -> S.TiHeap -> P.T 
+showDump stacks heap  = 
+    let sep = P.merge [P.nl, P.str "---------  in Dump ------------", P.nl ]
+    in P.interleav sep $ map (`showStack` heap) stacks 
 
 showStat :: S.TiStat -> P.T
 showStat stat = P.str $ "Count: " ++ show stat 
@@ -54,22 +63,46 @@ showHeap heap@(info, _, mapping) =
 showNode :: S.Node -> S.TiHeap -> P.T
 showNode  = showNodeRec []
 
+onlyName :: S.TiHeap ->  S.Node -> P.T
+onlyName heap (S.NApp l r) =
+    let left = H.hLookup heap l 
+        right = H.hLookup heap r 
+    in P.interleav (P.str " ") [P.str "App", onlyName heap left, P.str "(", onlyName heap right, P.str ")"]
+onlyName _ (S.NSupercomb name _ _) = P.str name
+onlyName _ (S.NNum num) = P.str $ show num 
+onlyName heap (S.NInd addr) = onlyName heap $ H.hLookup heap addr 
+onlyName _ (S.NPrim name _) = P.str name 
+onlyName _ (S.NData tag _) = P.str $ "tag :: " ++ show tag 
+
+recCheck :: S.TiHeap -> [H.Addr] -> H.Addr -> P.T
+recCheck heap adds add = 
+    if add `elem` adds 
+    then onlyName heap $ H.hLookup heap add
+    else showNodeRec adds (H.hLookup heap add) heap 
+
 showNodeRec  :: [H.Addr] -> S.Node -> S.TiHeap -> P.T
 showNodeRec _ (S.NNum n) _ =  P.merge [P.str "NNum ", P.str $ show n]
 showNodeRec adds (S.NApp f x) heap = 
     let adds' = f : x : adds  
-        recCheck add = 
-            if add `elem` adds 
-            then P.str "rec" 
-            else showNodeRec adds' (H.hLookup heap add) heap 
+        recCheck' = recCheck heap adds'
 
-        left = recCheck f 
-        right = recCheck x
-    in 
-    P.merge [ P.str "NApp ", left , P.str " (", right , P.str ")"  ]
+        left = recCheck' f 
+        right = recCheck' x 
+    in P.merge [ P.str "NApp ", left , P.str " (", right , P.str ")"  ]
 showNodeRec  _ (S.NSupercomb name _ _ ) _ = P.merge [P.str name]
 showNodeRec adds (S.NInd n) heap = 
     P.merge [P.str "NInd ", showNodeRec adds (H.hLookup heap n) heap ]
+showNodeRec _ (S.NPrim name _) _ = P.str name
+showNodeRec adds (S.NData tag dataArgs) heap = 
+    let adds' = dataArgs ++ adds 
+        recCheck' = recCheck heap adds'
+
+        args = map recCheck' dataArgs 
+    in P.merge [
+        P.str $ "Data " ++ show tag ++ " (" ,
+        P.interleav (P.str ", ") args,
+        P.str ")" 
+        ]
 
 ----------------------- Language --------------------------------
 

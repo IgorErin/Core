@@ -59,7 +59,9 @@ cases =
             ("main = (I (I 2)) * 4", 8),
             ("main = 6 / 2", 3),
             ("main = 8 - 10", -2),
-            ("main = (I 3) - 10", -7)]
+            ("main = (I 3) - 10", -7),
+            ("fac n = if (n == 0) 1 (n * fac (n-1)) ; \
+             \ main = fac 3", 6)]
 
 run :: String -> Int
 run = T.run . F.parse 
