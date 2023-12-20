@@ -70,7 +70,7 @@ onlyName heap (S.NApp l r) =
     in P.interleav (P.str " ") [P.str "App", onlyName heap left, P.str "(", onlyName heap right, P.str ")"]
 onlyName _ (S.NSupercomb name _ _) = P.str name
 onlyName _ (S.NNum num) = P.str $ show num 
-onlyName heap (S.NInd addr) = onlyName heap $ H.hLookup heap addr 
+onlyName heap (S.NInd addr) = P.merge [ P.str "Ind ", onlyName heap $ H.hLookup heap addr ]
 onlyName _ (S.NPrim name _) = P.str name 
 onlyName _ (S.NData tag _) = P.str $ "tag :: " ++ show tag 
 

@@ -18,6 +18,7 @@ tokens :-
   "->"                  { \_ -> Arrow } 
   $digit+               { \s -> Num (read s) }
   "=="                  { \_ -> Lexer.Eq }
+  "<>"                  { \_ -> Lexer.NEQ}
   "="                   {\_ -> Assign}
   "fun"                  {\_ -> Lambda }
   "<="                  {\_ -> LE }

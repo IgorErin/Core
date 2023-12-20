@@ -4,6 +4,9 @@ import qualified Language as L
 import qualified Heap as H 
 import qualified State as S 
 import qualified Show
+import qualified PSeq as P 
+
+import qualified Debug.Trace as Tr 
 
 compile :: L.CoreProgram -> S.TiState 
 compile program = 
@@ -97,23 +100,31 @@ primStep _ (L.PrimConstr tag arity) (stack@(_ : tl), dump, heap, globs, stat) =
                 in take arity $ map getArg tl 
             | otherwise         = error "Arg length mismatch"
 primStep _ L.If ([_, condApp, tApp, eApp], dump, heap, globs, stat) =
-    case condNode of 
+    case condNode  of 
     -- False 
-    S.NData 0 [] -> ([elseAddr], dump, heap, globs, stat)
+    S.NData 0 [] -> 
+        let node = S.NInd elseAddr 
+            heap' = H.hUpdate heap eApp node 
+        in
+        ([elseAddr], dump, heap', globs, stat)
     -- True 
-    S.NData 1 [] -> ([thenAddr], dump, heap, globs, stat)
+    S.NData 1 [] ->
+        let node = S.NInd thenAddr 
+            heap' = H.hUpdate heap eApp node 
+        in
+         ([thenAddr], dump, heap', globs, stat)
     S.NData _ _ -> error "Tag mismatch in if claus"
     S.NNum _ -> error "Num not in if cond"
     _ -> ([condAddr], [eApp] : dump, heap, globs, stat)
     where 
-    getArg x = case H.hLookup heap x of 
+    getArg  x = case H.hLookup heap x  of 
                 S.NApp _ right -> right 
                 _  -> error "App expected in If step"
 
     condAddr = getArg condApp 
     condNode =  H.hLookup heap condAddr  
             
-    thenAddr = getArg tApp 
+    thenAddr = getArg  tApp 
     elseAddr = getArg eApp
 primStep _ L.Greater state = primBin (mkRelOp (>)) state 
 primStep _ L.GreaterEq state = primBin (mkRelOp (>=)) state 

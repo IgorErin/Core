@@ -60,8 +60,12 @@ cases =
             ("main = 6 / 2", 3),
             ("main = 8 - 10", -2),
             ("main = (I 3) - 10", -7),
-            ("fac n = if (n == 0) 1 (n * fac (n-1)) ; \
-             \ main = fac 3", 6)]
+            ("main = 3 * (I (I 4))", 12),
+            ("main = if (1 == 1) 0 1", 0),
+            ("main = if (4 < 3) 0 1", 1),
+            ("ceil x = if (x > 1) (ceil (x - 1)) x; main = ceil 5", 1),
+            ("sum res x = if (x == 0) res (sum (res + x) (x - 1)); main = sum 0 3", 6),
+             ("fac n = if (n <> 0) ((fac (n - 1)) * n )  1  ;  main = fac 3", 6) ]
 
 run :: String -> Int
 run = T.run . F.parse 

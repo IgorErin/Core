@@ -7,5 +7,4 @@ runAndPrint :: String -> String
 runAndPrint = Show.strStates . T.eval . T.compile . F.parse 
 
 main :: IO ()
-main = putStrLn $ runAndPrint "fac n = if (n == 0) 1 (n * fac (n-1)) ; \
-             \ main = fac 1"
+main = putStrLn $ runAndPrint "error = error; ceil x = if (x <= 1) 1 ((ceil (x - 1)) * 2); main = ceil 5"
