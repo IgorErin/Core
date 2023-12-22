@@ -39,6 +39,7 @@ library:
   - base
   - bytestring
   - containers
+  - lens
   build-tool-depends: 
   - alex 
   - happy
